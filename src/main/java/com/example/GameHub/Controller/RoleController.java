@@ -4,13 +4,15 @@ import com.example.GameHub.model.request.RoleCreationRequest;
 import com.example.GameHub.model.response.ApiResponse;
 import com.example.GameHub.model.response.RoleResponse;
 import com.example.GameHub.service.RoleService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 @Controller
 @RequiredArgsConstructor
-@RequestMapping("/api/roles")
+@RequestMapping("/roles")
+@Tag(name = "Role", description = "API role")
 public class RoleController {
 
     private final RoleService roleService;
@@ -22,7 +24,7 @@ public class RoleController {
         return ApiResponse.<RoleResponse>builder()
                 .success(true)
                 .message("Role created successfully.")
-                .data(roleResponse)
+                .result(roleResponse)
                 .build();
     }
 }

@@ -4,6 +4,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 
 @Getter
@@ -19,5 +20,7 @@ public class UserCreationRequest {
     String email;
     LocalDate create_at;
     LocalDate update_at;
+
+    Set<String> roleNames;
 
 }
