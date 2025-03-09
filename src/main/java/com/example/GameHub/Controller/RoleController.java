@@ -22,9 +22,8 @@ public class RoleController {
     public ApiResponse<RoleResponse> createRole(@RequestBody RoleCreationRequest request) {
         RoleResponse roleResponse = roleService.createRole(request);
         return ApiResponse.<RoleResponse>builder()
-                .success(true)
-                .message("Role created successfully.")
                 .result(roleResponse)
+                .message("Role created successfully.")
                 .build();
     }
 }

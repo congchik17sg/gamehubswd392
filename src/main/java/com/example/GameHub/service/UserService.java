@@ -47,7 +47,7 @@ public class UserService {
     public UserResponse createUser(UserCreationRequest request, Set<String> roleNames) {
         if (userRepository.existsByUsername(request.getUsername()))
             throw new AppException(ErrorCode.USER_EXISTED);
-        if(userRepository.existsByEmail(request.getEmail()))
+        if (userRepository.existsByEmail(request.getEmail()))
             throw new AppException(ErrorCode.EMAIL_EXISTED);
 
 
@@ -89,6 +89,7 @@ public class UserService {
         return UserResponse.builder()
                 .username(user.getUsername())
                 .email(user.getEmail())
+                .password(user.getPassword())
                 .create_at(user.getCreate_at())
                 .update_at(user.getUpdate_at())
                 .roles(user.getUserRoles().stream()
@@ -113,6 +114,7 @@ public class UserService {
         userRepository.save(user);
         return true;
     }
+
     public UserResponse getMyInfo() {
         var context = SecurityContextHolder.getContext();
         String name = context.getAuthentication().getName();
@@ -135,7 +137,6 @@ public class UserService {
                         .collect(Collectors.toSet()))
                 .build();
     }
-
 
 
 }
