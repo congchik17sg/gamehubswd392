@@ -19,6 +19,7 @@ public enum ErrorCode {
     INCORRECT_PASSWORD(1009, "Wrong password", HttpStatus.BAD_REQUEST),
     INVALID_OTP(1010, "Wrong OTP", HttpStatus.BAD_REQUEST),
     EMAIL_NOT_EXISTED(1008, "Email not existed", HttpStatus.BAD_REQUEST),
+    ROLE_NOT_FOUND(1010, "Email not existed", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

@@ -21,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -130,6 +131,7 @@ public class UserService {
         return UserResponse.builder()
                 .username(user.getUsername())
                 .email(user.getEmail())
+                .password(user.getPassword())
                 .create_at(user.getCreate_at())
                 .update_at(user.getUpdate_at())
                 .roles(user.getUserRoles().stream()
@@ -137,6 +139,54 @@ public class UserService {
                         .collect(Collectors.toSet()))
                 .build();
     }
+    public List<UserResponse> getAllUser() {
+        List<User> users = userRepository.findAll();
+        return users.stream()
+                .map(this::convertToUserResponse)
+                .collect(Collectors.toList());
+    }
+    public UserResponse getUserById(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        return convertToUserResponse(user);
+    }
+    public UserResponse updateUserById(Long userId, UserCreationRequest request, Set<String> roleNames) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setUpdate_at(LocalDate.now());
+
+        // Cập nhật danh sách vai trò nếu có thay đổi
+        if (roleNames != null && !roleNames.isEmpty()) {
+            Set<UserRole> userRoles = roleNames.stream()
+                    .map(roleName -> {
+                        Role role = roleRepository.findByRole(roleName)
+                                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+                        return UserRole.builder()
+                                .user(user)
+                                .role(role)
+                                .create_at(LocalDate.now())
+                                .update_at(LocalDate.now())
+                                .build();
+                    }).collect(Collectors.toSet());
+            user.setUserRoles(userRoles);
+        }
+
+        userRepository.save(user);
+        return convertToUserResponse(user);
+    }
+    public void deleteUserById(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        userRepository.delete(user);
+    }
+
+
+
+
 
 
 }
