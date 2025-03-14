@@ -34,8 +34,8 @@ springdoc:
 
 cloudinary:
   cloud-name: dmjyr0m9b
-  api-key: 929748567749484
-  api-secret: PTLrp9QOcKAZJmHTaDb448X8yXk
+  api-key: 577299865618647
+  api-secret: ghtwO88WiVC5AkpgJbm97-IW-gQ
 
   spring:
     servlet:
