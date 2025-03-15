@@ -1,5 +1,6 @@
 package com.example.GameHub.entities;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,10 +26,7 @@ public class UserProduct {
     @ManyToOne
     @JoinColumn(name = "product_id")
     private Product product;
-
     @Column(name = "purchase_date")
     private LocalDateTime purchaseDate;
 
-    @Column(name = "status")
-    private String status;
 }
