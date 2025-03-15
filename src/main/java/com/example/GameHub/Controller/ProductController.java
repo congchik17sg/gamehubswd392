@@ -78,7 +78,40 @@ public class ProductController {
         return productService.createProduct(title, description, price, discountedPrice, downloadLink, versionName, categoryId, userId, images);
     }
 
+    @PutMapping(value = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseObject> updateProduct(
+            @Parameter(description = "ID sản phẩm", required = true)
+            @RequestParam("id") Long id,
 
+            @Parameter(description = "Tiêu đề sản phẩm", required = true)
+            @RequestParam("title") String title,
+
+            @Parameter(description = "Mô tả sản phẩm", required = true)
+            @RequestParam("description") String description,
+
+            @Parameter(description = "Giá sản phẩm", required = true)
+            @RequestParam("price") Double price,
+
+            @Parameter(description = "Giá giảm giá (nếu có)", required = false)
+            @RequestParam(value = "discountedPrice", required = false) Double discountedPrice,
+
+            @Parameter(description = "Link tải xuống sản phẩm", required = false)
+            @RequestParam(value = "downloadLink", required = false) String downloadLink,
+
+            @Parameter(description = "Tên phiên bản sản phẩm", required = false)
+            @RequestParam(value = "versionName", required = false) String versionName,
+
+            @Parameter(description = "ID danh mục", required = true)
+            @RequestParam("categoryId") Long categoryId,
+
+            @Parameter(description = "ID của người dùng", required = true)
+            @RequestParam("userId") Long userId,
+
+            @Parameter(description = "Danh sách file ảnh của sản phẩm", required = false)
+            @RequestPart(value = "images", required = false) MultipartFile[] images
+    ) {
+        return productService.updateProduct(id, title, description, price, discountedPrice, downloadLink, versionName, categoryId, images);
+    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ResponseObject> deleteProduct(

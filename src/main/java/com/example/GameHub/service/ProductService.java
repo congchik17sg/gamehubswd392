@@ -11,6 +11,7 @@ import com.example.GameHub.repository.CategoryRepository;
 import com.example.GameHub.repository.ProductImageRepository;
 import com.example.GameHub.repository.ProductRepository;
 import com.example.GameHub.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -128,7 +129,79 @@ public class ProductService {
         return ResponseEntity.ok(new ResponseObject("ok", "Tạo sản phẩm thành công", productResponse));
     }
 
+    @Transactional
+    public ResponseEntity<ResponseObject> updateProduct(
+            Long productId, String title, String description, Double price, Double discountedPrice,
+            String downloadLink, String versionName, Long categoryId, MultipartFile[] images) {
 
+        // Tìm sản phẩm cần cập nhật
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        // Cập nhật các thông tin cơ bản
+        product.setProductTitle(title);
+        product.setDescription(description);
+        product.setPrice(price);
+        product.setDiscountPrice(discountedPrice);
+        product.setDownloadLink(downloadLink);
+        product.setVersionName(versionName);
+        product.setUpdateAt(LocalDateTime.now());
+
+        // Kiểm tra và cập nhật category nếu có
+        if (categoryId != null) {
+            Category category = categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
+            product.setCategory(category);
+        }
+
+        // Xử lý cập nhật ảnh nếu có ảnh mới
+        if (images != null && images.length > 0) {
+            // Xóa ảnh cũ trên Cloudinary và trong database
+            List<ProductImage> oldImages = product.getImages();
+            for (ProductImage img : oldImages) {
+                cloudinaryService.deleteFile(img.getImageUrl()); // Xóa ảnh trên Cloudinary
+                productImageRepository.delete(img); // Xóa trong database
+            }
+
+            // Upload ảnh mới
+            List<ProductImage> newProductImages = Arrays.stream(images)
+                    .filter(file -> !file.isEmpty())
+                    .map(file -> {
+                        String imageUrl = cloudinaryService.uploadFile(file);
+                        ProductImage productImage = new ProductImage();
+                        productImage.setImageUrl(imageUrl);
+                        productImage.setCreateAt(LocalDateTime.now());
+                        productImage.setUpdateAt(LocalDateTime.now());
+                        productImage.setProduct(product);
+                        return productImage;
+                    })
+                    .collect(Collectors.toList());
+
+            product.setImages(newProductImages);
+        }
+
+        productRepository.save(product);
+
+        List<String> imageUrls = product.getImages().stream()
+                .map(ProductImage::getImageUrl)
+                .collect(Collectors.toList());
+
+        ProductResponse productResponse = new ProductResponse(
+                product.getId(),
+                product.getProductTitle(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getDiscountPrice(),
+                product.getDownloadLink(),
+                product.getVersionName(),
+                product.getStatus(),
+                product.getReleaseDate(),
+                product.getCreateAt(),
+                imageUrls
+        );
+
+        return ResponseEntity.ok(new ResponseObject("ok", "Cập nhật sản phẩm thành công", productResponse));
+    }
     public ResponseEntity<ResponseObject> deleteProduct(Long id) {
         try {
             Optional<Product> productOptional = productRepository.findById(id);
