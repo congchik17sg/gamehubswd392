@@ -16,7 +16,7 @@ public class UserProduct {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;  // Thêm ID tự tăng, khỏi cần composite key
+    private Long id;
 
     @ManyToOne
     @JoinColumn(name = "user_id")

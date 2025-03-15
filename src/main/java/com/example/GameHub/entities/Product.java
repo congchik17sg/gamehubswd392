@@ -32,7 +32,7 @@ public class Product {
     private Double price;
     private Double discountPrice;
     private String downloadLink;
-    private String versionName; // Cột version name như ông yêu cầu
+    private String versionName;
 
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
