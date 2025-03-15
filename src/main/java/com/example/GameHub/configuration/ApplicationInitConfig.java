@@ -21,7 +21,7 @@ import java.util.Optional;
 @Slf4j
 public class ApplicationInitConfig {
 
-//    private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     @Bean
     ApplicationRunner applicationRunner(UserRepository userRepository,
@@ -29,31 +29,30 @@ public class ApplicationInitConfig {
                                         UserRoleRepository userRoleRepository) {
         return args -> {
             // Kiểm tra xem role ADMIN đã tồn tại chưa
-            Optional<Role> adminRoleOpt = roleRepository.findByRole("ADMIN");
-            Role adminRole;
-            if (adminRoleOpt.isEmpty()) {
-                adminRole = Role.builder()
-                        .role("ADMIN")
-                        .create_at(LocalDate.now())
-                        .update_at(LocalDate.now())
-                        .build();
-                roleRepository.save(adminRole);
-                log.info("Role ADMIN has been created");
-            } else {
-                adminRole = adminRoleOpt.get();
-            }
+            Role adminRole = roleRepository.findByRole("ADMIN")
+                    .orElseGet(() -> {
+                        Role role = Role.builder()
+                                .role("ADMIN")
+                                .create_at(LocalDate.now())
+                                .update_at(LocalDate.now())
+                                .build();
+                        roleRepository.save(role);
+                        log.info("Role ADMIN has been created");
+                        return role;
+                    });
 
             // Kiểm tra xem user admin đã tồn tại chưa
-            if (userRepository.findByUsername("admin").isEmpty()) {
+            Optional<User> adminUserOpt = userRepository.findByUsername("admin");
+            if (adminUserOpt.isEmpty()) {
                 User adminUser = User.builder()
                         .username("admin")
-                        .password(("admin"))
+                        .password(passwordEncoder.encode("admin")) // Mã hóa mật khẩu
                         .email("admin@example.com")
                         .status(true)
                         .create_at(LocalDate.now())
                         .update_at(LocalDate.now())
                         .build();
-                userRepository.save(adminUser);
+                adminUser = userRepository.save(adminUser); // Cập nhật lại để có ID
 
                 // Gán quyền ADMIN cho user admin
                 UserRole userRole = UserRole.builder()

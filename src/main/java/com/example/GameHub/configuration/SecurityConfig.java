@@ -1,5 +1,7 @@
 package com.example.GameHub.configuration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,6 +14,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 
@@ -23,7 +27,7 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-//    private final String[] PUBLIC_ENDPOINT = {"/users",
+    //    private final String[] PUBLIC_ENDPOINT = {"/users",
 //            "/auth/log-in",
 //            "/auth/introspect",
 //            "/auth/verify"};
@@ -32,7 +36,7 @@ public class SecurityConfig {
     private String signerKey;
 
 
-
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
@@ -46,10 +50,13 @@ public class SecurityConfig {
                     return config;
                 }))
                 .authorizeHttpRequests(request -> request
-                        .anyRequest().permitAll() // ⚡ Cho phép tất cả các request mà không cần xác thực
+                        .requestMatchers("/users/me").authenticated()  // ⚡ Bắt buộc cần token
+                        .anyRequest().permitAll()
                 )
+
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer ->
                         jwtConfigurer.decoder(jwtDecoder())
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter())
                 ))
                 .csrf(AbstractHttpConfigurer::disable); // Nếu không cần CSRF
 
@@ -57,75 +64,39 @@ public class SecurityConfig {
     }
 
 
-
-
-
-
-
 //    @Bean
-//    public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
-//        httpSecurity
-//                .cors(cors -> cors.configurationSource(request -> {
-//                    CorsConfiguration config = new CorsConfiguration();
-//                    config.setAllowedOrigins(List.of("http://localhost:5173")); // Adjust as needed
-//                    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-//                    config.setAllowedHeaders(List.of("*"));
-//                    config.setAllowCredentials(true);
-//                    return config;
-//                }))
-//                .authorizeHttpRequests(request ->
-//                        request
-//                                .requestMatchers(
-//                                        "/swagger-ui/**",
-//                                        "/swagger-ui.html",
-//                                        "/v3/api-docs/**"
-//                                ).permitAll()
-//                                // Allow POST requests to /users without authentication
-//                                .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINT).permitAll()
-//                                // All other requests require authentication
-//                                .requestMatchers(HttpMethod.GET, "/auth/verify").permitAll()
-//                                .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
-//
-//
-//                                .anyRequest().authenticated());
-//
-//        httpSecurity.oauth2ResourceServer(oauth2 ->
-//                oauth2.jwt(jwtConfigurer ->
-//                                jwtConfigurer.decoder(jwtDecoder())
-//                                        .jwtAuthenticationConverter(jwtAuthenticationConverter()))
-//                        .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
-//        );
-//        // Disable CSRF protection
-//        httpSecurity.csrf(AbstractHttpConfigurer::disable);
-//
-//
-//        return httpSecurity.build();
+//    JwtDecoder jwtDecoder() {
+//        SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(), "HS512");
+//        return NimbusJwtDecoder
+//                .withSecretKey(secretKeySpec)
+//                .macAlgorithm(MacAlgorithm.HS512)
+//                .build();
 //    }
-
-//    @Bean
-//    JwtAuthenticationConverter jwtAuthenticationConverter() {
-//        JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-//        jwtGrantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
-//
-//        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
-//        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
-//
-//        return jwtAuthenticationConverter;
-//    }
-//
-    @Bean
-    JwtDecoder jwtDecoder() {
-        SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(), "HS512");
-        return NimbusJwtDecoder
-                .withSecretKey(secretKeySpec)
-                .macAlgorithm(MacAlgorithm.HS512)
-                .build();
-    }
 
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(10);
     }
 
+    @Bean
+    JwtDecoder jwtDecoder() {
+        log.info("🛠 JWT Signer Key: {}", signerKey); // ✅ In giá trị key ra log
+        SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(), "HmacSHA512");
+        return NimbusJwtDecoder
+                .withSecretKey(secretKeySpec)
+                .macAlgorithm(MacAlgorithm.HS512)
+                .build();
+    }
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
+
+        JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
+        authenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
+        authenticationConverter.setPrincipalClaimName("username"); // Lấy username từ token
+
+        return authenticationConverter;
+    }
 
 }

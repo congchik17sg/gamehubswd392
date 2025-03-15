@@ -17,7 +17,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -116,15 +118,40 @@ public class UserService {
         return true;
     }
 
+    //    public UserResponse getMyInfo() {
+//        var context = SecurityContextHolder.getContext();
+//        String name = context.getAuthentication().getName();
+//
+//        User user = userRepository.findByUsername(name)
+//                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+//
+//        return convertToUserResponse(user); // ✅ Dùng hàm tự viết
+//    }
     public UserResponse getMyInfo() {
-        var context = SecurityContextHolder.getContext();
-        String name = context.getAuthentication().getName();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        User user = userRepository.findByUsername(name)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        if (authentication == null || !(authentication.getPrincipal() instanceof Jwt)) {
+            throw new RuntimeException("User not authenticated");
+        }
 
-        return convertToUserResponse(user); // ✅ Dùng hàm tự viết
+        Jwt jwt = (Jwt) authentication.getPrincipal();
+        String username = jwt.getClaim("username");
+
+        return userRepository.findByUsername(username)
+                .map(user -> UserResponse.builder()
+                        .username(user.getUsername())
+                        .password(user.getPassword()) // ⚠️ Cân nhắc bỏ trường password trong response để bảo mật
+                        .email(user.getEmail())
+                        .create_at(user.getCreate_at())
+                        .update_at(user.getUpdate_at())
+                        .roles(user.getUserRoles().stream()
+                                .map(userRole -> userRole.getRole().getRole()) // Lấy danh sách role
+                                .collect(Collectors.toSet()))
+                        .build())
+                .orElseThrow(() -> new RuntimeException("User Not Existed"));
     }
+
+
 
 
     private UserResponse convertToUserResponse(User user) {
@@ -139,17 +166,20 @@ public class UserService {
                         .collect(Collectors.toSet()))
                 .build();
     }
+
     public List<UserResponse> getAllUser() {
         List<User> users = userRepository.findAll();
         return users.stream()
                 .map(this::convertToUserResponse)
                 .collect(Collectors.toList());
     }
+
     public UserResponse getUserById(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         return convertToUserResponse(user);
     }
+
     public UserResponse updateUserById(Long userId, UserCreationRequest request, Set<String> roleNames) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
@@ -177,16 +207,13 @@ public class UserService {
         userRepository.save(user);
         return convertToUserResponse(user);
     }
+
     public void deleteUserById(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         userRepository.delete(user);
     }
-
-
-
-
 
 
 }

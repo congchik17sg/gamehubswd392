@@ -61,5 +61,16 @@ public class UserController {
                 .result(null) // Vì không có dữ liệu trả về
                 .build());
     }
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> getMyInfo() {
+        UserResponse userResponse = userService.getMyInfo();
+        return ResponseEntity.ok(
+                ApiResponse.<UserResponse>builder()
+                        .code(1000)
+                        .message("Lấy thông tin người dùng thành công")
+                        .result(userResponse)
+                        .build()
+        );
+    }
 
 }
