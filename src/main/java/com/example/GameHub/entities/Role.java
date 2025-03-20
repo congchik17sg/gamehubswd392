@@ -1,6 +1,7 @@
 package com.example.GameHub.entities;
 
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -25,6 +26,6 @@ public class Role {
     LocalDate update_at;
 
     @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     Set<UserRole> userRoles; // Quan hệ 1-nhiều với UserRole
-
 }

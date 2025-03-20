@@ -61,6 +61,7 @@ public class ProductService {
     }
 
     public ResponseEntity<ResponseObject> getAllProducts() {
+
         List<Product> products = productRepository.findAll();
         return ResponseEntity.status(HttpStatus.OK).body(
                 new ResponseObject("ok", "Danh sách sản phẩm", products)

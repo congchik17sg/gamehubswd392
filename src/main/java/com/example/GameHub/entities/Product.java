@@ -1,5 +1,6 @@
 package com.example.GameHub.entities;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
@@ -21,12 +22,13 @@ import java.util.List;
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "product_id")
     private Long id;
 
+    @JsonManagedReference
     @ManyToOne
-    @JoinColumn(name = "user_id",    nullable = false)
+    @JoinColumn(name = "user_id",nullable = false)
     private User user;
-
     private String productTitle;
     private String description;
     private Double price;
@@ -36,14 +38,22 @@ public class Product {
 
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
+    @JsonManagedReference
     private Category category;
 
     private String status;
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate releaseDate;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.SSS")
     private LocalDateTime createAt;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.SSS")
     private LocalDateTime updateAt;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<ProductImage> images;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private List<UserProduct> ownerships;
 }
