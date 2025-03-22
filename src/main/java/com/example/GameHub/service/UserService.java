@@ -19,6 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
@@ -47,27 +49,29 @@ public class UserService {
 
     private static final ConcurrentHashMap<String, String> otpStorage = new ConcurrentHashMap<>();
 
+    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+
     public UserResponse createUser(UserCreationRequest request, Set<String> roleNames) {
         if (userRepository.existsByUsername(request.getUsername()))
             throw new AppException(ErrorCode.USER_EXISTED);
         if (userRepository.existsByEmail(request.getEmail()))
             throw new AppException(ErrorCode.EMAIL_EXISTED);
 
+        // ✅ Mã hóa mật khẩu trước khi lưu
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
 
-        // 1. Tạo đối tượng User từ request
         User user = User.builder()
                 .username(request.getUsername())
-                .password(request.getPassword()) // Cân nhắc mã hóa mật khẩu
+                .password(encodedPassword)  // Lưu mật khẩu đã mã hóa
                 .email(request.getEmail())
                 .status(true)
                 .create_at(LocalDate.now())
                 .update_at(LocalDate.now())
                 .build();
 
-        // 2. Lưu user trước để sinh ID
         userRepository.save(user);
 
-        // 3. Tạo UserRole từ roleNames
         Set<UserRole> userRoles = roleNames.stream()
                 .map(roleName -> {
                     Role role = roleRepository.findByRole(roleName)
@@ -88,18 +92,15 @@ public class UserService {
 
         sendVerificationEmail(user);
 
-        // 4. Trả về UserResponse
         return UserResponse.builder()
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .password(user.getPassword())
                 .create_at(user.getCreate_at())
                 .update_at(user.getUpdate_at())
                 .roles(user.getUserRoles().stream()
                         .map(userRole -> userRole.getRole().getRole())
                         .collect(Collectors.toSet()))
                 .build();
-
     }
 
     private void sendVerificationEmail(User user) {
@@ -150,8 +151,6 @@ public class UserService {
                         .build())
                 .orElseThrow(() -> new RuntimeException("User Not Existed"));
     }
-
-
 
 
     private UserResponse convertToUserResponse(User user) {
