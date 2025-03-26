@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -99,51 +100,48 @@ public class VnPayController {
      * Xử lý phản hồi từ VNPAY
      */
     @GetMapping("/vnpay-return")
-    public ResponseEntity<?> handleReturnUrl(HttpServletRequest request, HttpServletResponse response) {
-        try {
-            Map<String, String> paramMap = new HashMap<>();
-            request.getParameterMap().forEach((key, value) -> paramMap.put(key, value[0]));
-            String vnpTxnRef = request.getParameter("vnp_TxnRef");
-            String vnpResponseCode = request.getParameter("vnp_ResponseCode");
+    public ModelAndView handleReturnUrl(HttpServletRequest request) {
+        Map<String, String> paramMap = new HashMap<>();
+        request.getParameterMap().forEach((key, value) -> paramMap.put(key, value[0]));
+        String vnpTxnRef = request.getParameter("vnp_TxnRef");
+        String vnpResponseCode = request.getParameter("vnp_ResponseCode");
 
-            // Xác thực chữ ký
-            boolean isValid = vnPayService.validateSignature(paramMap);
-            if (!isValid) {
-                response.sendRedirect("https://gamehub.vercel.app/payment-failed");
-                return ResponseEntity.badRequest().body("Invalid signature");
-            }
+        ModelAndView modelAndView = new ModelAndView("payment-result");
 
-            // Tìm giao dịch
-            Optional<Transaction> transactionOpt = transactionRepository.findByVnpTxnRef(vnpTxnRef);
-            if (transactionOpt.isEmpty()) {
-                response.sendRedirect("https://gamehub.vercel.app/payment-not-found");
-                return ResponseEntity.badRequest().body("Transaction not found");
-            }
-
-            Transaction transaction = transactionOpt.get();
-            TransactionStatus status = "00".equals(vnpResponseCode) ? TransactionStatus.SUCCESS : TransactionStatus.FAILED;
-            transaction.setTransactionStatus(status);  // Dùng Enum thay vì String
-
-            transaction.setVnpResponseCode(vnpResponseCode);
-
-            // Lưu transaction vào DB
-            transactionRepository.save(transaction);
-
-            if ("SUCCESS".equals(status)) {
-                response.sendRedirect("https://gamehub.vercel.app/payment-success");
-            } else {
-                response.sendRedirect("https://gamehub.vercel.app/payment-failed");
-            }
-
-            return null;
-        } catch (Exception e) {
-            try {
-                response.sendRedirect("https://gamehub.vercel.app/payment-error");
-            } catch (Exception ignored) {
-            }
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Server error");
+        // Xác thực chữ ký
+        boolean isValid = vnPayService.validateSignature(paramMap);
+        if (!isValid) {
+            modelAndView.addObject("status", "failed");
+            modelAndView.addObject("message", "Invalid signature.");
+            return modelAndView;
         }
+
+        // Tìm giao dịch
+        Optional<Transaction> transactionOpt = transactionRepository.findByVnpTxnRef(vnpTxnRef);
+        if (transactionOpt.isEmpty()) {
+            modelAndView.addObject("status", "not-found");
+            modelAndView.addObject("message", "Transaction not found.");
+            return modelAndView;
+        }
+
+        // Cập nhật trạng thái giao dịch
+        Transaction transaction = transactionOpt.get();
+        TransactionStatus status = "00".equals(vnpResponseCode) ? TransactionStatus.SUCCESS : TransactionStatus.FAILED;
+        transaction.setTransactionStatus(status);
+        transaction.setVnpResponseCode(vnpResponseCode);
+        transactionRepository.save(transaction);
+
+        // Trả về trang Thymeleaf với trạng thái giao dịch
+        modelAndView.addObject("status", status == TransactionStatus.SUCCESS ? "success" : "failed");
+        modelAndView.addObject("message", status == TransactionStatus.SUCCESS ? "Payment Successful!" : "Payment Failed!");
+
+
+        String fullUrl = request.getRequestURL() + "?" + request.getQueryString();
+        System.out.println("🔍 VNPAY RETURN URL: " + fullUrl);
+        return modelAndView;
     }
+
+
 
     /**
      * Lấy danh sách giao dịch

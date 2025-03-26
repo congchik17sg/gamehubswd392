@@ -55,6 +55,6 @@ vnpay:
   tmnCode: "J9NG85WH"
   hashSecret: "OK81U9J58W74G9Q0V2UI9P4GDN4LQ9PZ"
   payUrl: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
-  returnUrl: https://yourdomain.com/vnpay-return
+  returnUrl: "http://localhost:8080/gamehub/api/payment/vnpay-return"
   version: 2.1.0
   command: pay
