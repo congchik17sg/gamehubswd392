@@ -98,6 +98,13 @@ public class EmailService {
             throw new RuntimeException("Lỗi khi gửi email: " + e.getMessage());
         }
     }
+    public void sendOtpEmail(String email, String otp) {
+        String subject = "Mã OTP đặt lại mật khẩu";
+        String content = "Mã OTP của bạn là: " + otp + ". Mã này sẽ hết hạn sau 5 phút.";
+
+        sendEmail(email, subject, content);
+    }
+
 
 
 

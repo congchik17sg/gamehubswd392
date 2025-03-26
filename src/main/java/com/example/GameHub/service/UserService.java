@@ -17,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -25,9 +27,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -47,9 +47,12 @@ public class UserService {
     @Autowired
     EmailService emailService;
 
-    private static final ConcurrentHashMap<String, String> otpStorage = new ConcurrentHashMap<>();
+//    private static final ConcurrentHashMap<String, String> otpStorage = new ConcurrentHashMap<>();
 
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private static final ConcurrentHashMap<String, String> otpStorage = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Long> otpExpiry = new ConcurrentHashMap<>();
+    private static final long OTP_VALID_DURATION = 5 * 60 * 1000; // 5 phút
 
 
     public UserResponse createUser(UserCreationRequest request, Set<String> roleNames) {
@@ -213,6 +216,54 @@ public class UserService {
 
         userRepository.delete(user);
     }
+    public ResponseEntity<?> forgotPassword(String email) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "❌ Email không tồn tại!"));
+        }
+
+        String otp = generateOtp();
+        otpStorage.put(email, otp);
+        otpExpiry.put(email, System.currentTimeMillis() + OTP_VALID_DURATION);
+        emailService.sendOtpEmail(email, otp);
+
+        return ResponseEntity.ok(Map.of("message", "✅ OTP đã được gửi đến email của bạn!"));
+    }
+
+    public ResponseEntity<?> resetPassword(String email, String otp, String newPassword) {
+        if (!otpStorage.containsKey(email) || !otpStorage.get(email).equals(otp)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "❌ OTP không hợp lệ hoặc đã hết hạn!"));
+        }
+
+        if (System.currentTimeMillis() > otpExpiry.get(email)) {
+            otpStorage.remove(email);
+            otpExpiry.remove(email);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "❌ OTP đã hết hạn!"));
+        }
+
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "❌ Email không tồn tại!"));
+        }
+
+        User user = userOpt.get();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        otpStorage.remove(email);
+        otpExpiry.remove(email);
+
+        return ResponseEntity.ok(Map.of("message", "✅ Mật khẩu đã được đặt lại thành công!"));
+    }
+
+    private String generateOtp() {
+        return String.valueOf(new Random().nextInt(900000) + 100000);
+    }
+
 
 
 }

@@ -72,5 +72,17 @@ public class UserController {
                         .build()
         );
     }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
+        return userService.forgotPassword(email);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestParam String email,
+                                           @RequestParam String otp,
+                                           @RequestParam String newPassword) {
+        return userService.resetPassword(email, otp, newPassword);
+    }
+
 
 }
