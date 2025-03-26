@@ -14,9 +14,9 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 @EnableWebMvc
 @OpenAPIDefinition(
         info = @Info(
-                title = "Eclat API",
+                title = "Gamehub API",
                 version = "v1",
-                description = "API documentation for Eclat"
+                description = "API documentation for Gamehub"
         ),
         security = @SecurityRequirement(name = "bearerAuth")
 )

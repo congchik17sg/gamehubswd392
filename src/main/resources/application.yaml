@@ -51,9 +51,10 @@ jwt:
 #    org.springframework.web: DEBUG
 #    org.springdoc: DEBUG
 #    org.springframework.security: DEBUG
-
 vnpay:
-  tmn-code: "3OHAUFP3"
-  hash-secret: "H65JPP9358I22WXCKF16GHPTX3J0HSOW"
-  pay-url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
-  return-url: "https://yourdomain.com/vnpay-return"
+  tmnCode: "J9NG85WH"
+  hashSecret: "OK81U9J58W74G9Q0V2UI9P4GDN4LQ9PZ"
+  payUrl: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+  returnUrl: https://yourdomain.com/vnpay-return
+  version: 2.1.0
+  command: pay
